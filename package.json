@@ -12,6 +12,7 @@
     "puppeteer": "^3.3.0"
   },
   "devDependencies": {
-    "cheerio": "^1.0.0-rc.3"
+    "cheerio": "^1.0.0-rc.3",
+    "http2": "^3.3.7"
   }
 }
