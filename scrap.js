@@ -1,5 +1,7 @@
 const puppeteer = require("puppeteer"), fs = require("fs");
 const linkNormalizer = require("./normalizer")
+const getIPAddress = require("./getIPAddress")
+const BlockList = require("./blocklist")
 
 class Scrap {
     constructor(baseUrl, normalizer = {
@@ -13,10 +15,18 @@ class Scrap {
         this.scrapOb = {}
     }
 
-    async init() {
+    async init(n=2) {
         try {
+            let bl = new BlockList();
+            await bl.init()
+            this.blockList = await bl.fetch(n);
+            await bl.close()
             this.browser = await puppeteer.launch({ignoreHTTPSErrors: true, acceptInsecureCerts: true, args: ['--proxy-bypass-list=*', '--disable-gpu', '--disable-dev-shm-usage', '--disable-setuid-sandbox', '--no-first-run', '--no-sandbox', '--no-zygote', '--single-process', '--ignore-certificate-errors', '--ignore-certificate-errors-spki-list', '--enable-features=NetworkService']});
             this.mainPage = await this.browser.newPage();
+            const r = this.blockList.find(value => value== getIPAddress(this.baseUrl))
+            if (r!=undefined){
+                throw new Error(`Ip:${r} is blocked for uri: ${this.baseUrl}`)
+            }
             await this.mainPage.goto(this.baseUrl)
             this.scrapOb = []
             this.scrapOb.push(await this.evaluate(this.mainPage))
@@ -46,11 +56,16 @@ class Scrap {
                 } else {
                     page = await this.browser.newPage();
                     this.queueVisit.push(link)
-                    await page.goto(link).catch(e=> {
-                        console.log(`Class ${Scrap.name}, function try, error: ${e.message}`)
-                    })
-                    this.scrapOb.push(await this.evaluate(page))
-                    await page.close()
+                    const r = this.blockList.find(value => value== getIPAddress(link))
+                    if (r!=undefined){
+                        console.log(`Ip:${r} is blocked for uri: ${link}`)
+                    }else {
+                        await page.goto(link).catch(e=> {
+                            console.log(`Class ${Scrap.name}, function try, error: ${e.message}`)
+                        })
+                        this.scrapOb.push(await this.evaluate(page))
+                        await page.close()
+                    }
                 }
             }
 
