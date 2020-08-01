@@ -17,7 +17,7 @@ class BlockList{
         }
     }
     async getListWithURL(url){
-        await this.page.goto(url,{timeout: 0})
+        await this.page.goto(url)
         return await this.page.evaluate(async ()=>{
             return await document.querySelector("pre").innerText.split("\n");
         })

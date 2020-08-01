@@ -60,7 +60,7 @@ class Scrap {
                         await page.goto(link).catch(e=> {
                             console.log(`Class ${Scrap.name}, function try, error: ${e.message}`)
                         })
-                        await this.insert(await this.evaluate(this.mainPage))
+                        await this.insert(await this.evaluate(page))
                         await page.close()
                     }
                 }

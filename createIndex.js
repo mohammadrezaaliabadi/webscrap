@@ -5,6 +5,12 @@ async function createIndex(name){
         body:{
             "settings": {
                 "analysis": {
+                    "char_filter": {
+                        "zero_width_spaces": {
+                            "type":       "mapping",
+                            "mappings": [ "\\u200C=>\\u0020"]
+                        }
+                    },
                     "analyzer": {
                         "english_stop":{
                             "type":"standard",
@@ -13,8 +19,8 @@ async function createIndex(name){
                         "custom_analyzer":{
                             "type":"custom",
                             "tokenizer":"standard",
-                            "char_filter":["html_strip"],
-                            "filter":["lowercase","trim","my_stemmer"]
+                            "char_filter":["html_strip","zero_width_spaces"],
+                            "filter":["lowercase","trim","my_stemmer","persian_stop","persian_normalization"],
                         },
                         "url_analyzer":{
                             "type":"custom",
@@ -25,8 +31,11 @@ async function createIndex(name){
                         "my_stemmer":{
                             "type":"stemmer",
                             "name":"english"
+                        }, "persian_stop": {
+                            "type": "stop",
+                            "stopwords": "_persian_"
                         }
-                    }
+                    },
                 },
                 "index": {
                     "number_of_shards": 1,
