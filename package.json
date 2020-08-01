@@ -10,6 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "dns": "^0.2.2",
+    "elasticsearch": "^16.7.1",
+    "get-json": "^1.0.1",
     "puppeteer": "^3.3.0"
   },
   "devDependencies": {

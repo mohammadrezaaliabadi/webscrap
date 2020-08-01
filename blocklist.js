@@ -1,5 +1,4 @@
 const puppeteer = require("puppeteer"), fs = require("fs");
-const getIPAddress = require("./getIPAddress")
 
 class BlockList{
     constructor() {

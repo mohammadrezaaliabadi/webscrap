@@ -1,26 +1,24 @@
 const puppeteer = require("puppeteer"), fs = require("fs");
 const linkNormalizer = require("./normalizer")
 const getIPAddress = require("./getIPAddress")
-const BlockList = require("./blocklist")
+const client = require('./connection.js');
+
 
 class Scrap {
-    constructor(baseUrl, normalizer = {
+    constructor(baseUrl ,indexName, normalizer = {
                     linkNormalizer: linkNormalizer
                 }
     ) {
+        this.indexName= indexName;
         this.normalizer = normalizer;
         this.baseUrl = baseUrl;
         this.queueLinks = []
         this.queueVisit = []
-        this.scrapOb = {}
     }
 
-    async init(n=2) {
+    async init(blockList) {
         try {
-            let bl = new BlockList();
-            await bl.init()
-            this.blockList = await bl.fetch(n);
-            await bl.close()
+            this.blockList = blockList
             this.browser = await puppeteer.launch({ignoreHTTPSErrors: true, acceptInsecureCerts: true, args: ['--proxy-bypass-list=*', '--disable-gpu', '--disable-dev-shm-usage', '--disable-setuid-sandbox', '--no-first-run', '--no-sandbox', '--no-zygote', '--single-process', '--ignore-certificate-errors', '--ignore-certificate-errors-spki-list', '--enable-features=NetworkService']});
             this.mainPage = await this.browser.newPage();
             const r = this.blockList.find(value => value== getIPAddress(this.baseUrl))
@@ -28,8 +26,7 @@ class Scrap {
                 throw new Error(`Ip:${r} is blocked for uri: ${this.baseUrl}`)
             }
             await this.mainPage.goto(this.baseUrl)
-            this.scrapOb = []
-            this.scrapOb.push(await this.evaluate(this.mainPage))
+            await this.insert(await this.evaluate(this.mainPage))
         } catch (e) {
             console.log(e.message)
         }
@@ -63,7 +60,7 @@ class Scrap {
                         await page.goto(link).catch(e=> {
                             console.log(`Class ${Scrap.name}, function try, error: ${e.message}`)
                         })
-                        this.scrapOb.push(await this.evaluate(page))
+                        await this.insert(await this.evaluate(this.mainPage))
                         await page.close()
                     }
                 }
@@ -79,7 +76,7 @@ class Scrap {
             console.log(page._target._targetInfo.url)
             const ob = await page.evaluate(async () => {
                 const ob = {}
-                // ob["href"] = window.location.href
+                ob["href"] = window.location.href
                 if (await document.querySelector("title")) {
                     ob["title"] = await document.querySelector("title").innerText.trim()
                 }
@@ -133,11 +130,23 @@ class Scrap {
         }
     }
 
-    async finish() {
-        await this.browser.close()
+    async insert(ob){
+        await client.index({
+            index: this.indexName,
+            body: ob
+        },function(err,resp,status) {
+            console.log(resp);
+        });
+    }
+
+    async writeToFile(){
         await fs.writeFileSync("file.json", JSON.stringify(this.scrapOb), "utf8", err => {
             if (err) return console.log(`Class ${Scrap.name}, function finish, error: ${err.message}`);
         })
+    }
+
+    async finish() {
+        await this.browser.close()
     }
 }
 
